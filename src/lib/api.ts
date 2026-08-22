@@ -67,7 +67,6 @@ class ApiClient {
     }
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       Accept: 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
       ...Object.fromEntries(
@@ -78,6 +77,13 @@ class ApiClient {
       ),
     };
 
+    // Only send JSON Content-Type for non-FormData requests.
+    // For FormData, the browser must set the multipart boundary automatically.
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Send Laravel authentication token.
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`;
     }
@@ -285,10 +291,40 @@ class ApiClient {
     });
   }
 
-  async uploadDocument(payload: any) {
+  /**
+   * Upload a document using multipart/form-data.
+   * The Authorization Bearer token is still sent automatically.
+   */
+  async uploadDocument(payload: {
+    file: File;
+    title?: string;
+    category?: string;
+    case_id?: number;
+    hearing_id?: number;
+  }) {
+    const formData = new FormData();
+
+    formData.append('file', payload.file);
+
+    if (payload.title) {
+      formData.append('title', payload.title);
+    }
+
+    if (payload.category) {
+      formData.append('category', payload.category);
+    }
+
+    if (payload.case_id !== undefined) {
+      formData.append('case_id', String(payload.case_id));
+    }
+
+    if (payload.hearing_id !== undefined) {
+      formData.append('hearing_id', String(payload.hearing_id));
+    }
+
     return this.request('/documents', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: formData,
     });
   }
 
