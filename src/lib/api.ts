@@ -17,7 +17,8 @@ import type {
   User,
 } from "@/types/api";
 
-const API_BASE_URL = "https://asal-backend-2.onrender.com/api";
+const API_BASE_URL =
+  "https://asal-backend-2.onrender.com/api";
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, any>;
@@ -27,51 +28,76 @@ class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
 
-  constructor(baseUrl: string = API_BASE_URL) {
+  constructor(
+    baseUrl: string = API_BASE_URL
+  ) {
     this.baseUrl = baseUrl;
     this.loadToken();
   }
 
   private loadToken() {
-    this.token = localStorage.getItem("auth_token");
+    this.token =
+      localStorage.getItem("auth_token");
   }
 
   private saveToken(token: string) {
     this.token = token;
-    localStorage.setItem("auth_token", token);
+    localStorage.setItem(
+      "auth_token",
+      token
+    );
   }
 
   private clearToken() {
     this.token = null;
-    localStorage.removeItem("auth_token");
+    localStorage.removeItem(
+      "auth_token"
+    );
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const normalizedBase = this.baseUrl.endsWith("/")
-      ? this.baseUrl
-      : `${this.baseUrl}/`;
+    const normalizedBase =
+      this.baseUrl.endsWith("/")
+        ? this.baseUrl
+        : `${this.baseUrl}/`;
 
-    const normalizedEndpoint = endpoint.replace(/^\/+/, "");
-    const url = new URL(normalizedEndpoint, normalizedBase);
+    const normalizedEndpoint =
+      endpoint.replace(/^\/+/, "");
+
+    const url = new URL(
+      normalizedEndpoint,
+      normalizedBase
+    );
 
     if (options.params) {
-      Object.entries(options.params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value));
+      Object.entries(options.params).forEach(
+        ([key, value]) => {
+          if (
+            value !== undefined &&
+            value !== null
+          ) {
+            url.searchParams.append(
+              key,
+              String(value)
+            );
+          }
         }
-      });
+      );
     }
 
     const headers: Record<string, string> = {
       Accept: "application/json",
-      "X-Requested-With": "XMLHttpRequest",
+      "X-Requested-With":
+        "XMLHttpRequest",
     };
 
     if (options.headers) {
-      Object.entries(options.headers).forEach(([key, value]) => {
+      Object.entries(
+        options.headers
+      ).forEach(([key, value]) => {
         if (value !== undefined) {
           headers[key] = String(value);
         }
@@ -79,23 +105,38 @@ class ApiClient {
     }
 
     /*
-     * مهم جداً:
-     * لا نضع Content-Type يدوياً مع FormData.
-     * المتصفح هو الذي يضيف multipart/form-data
-     * مع boundary الصحيح.
+     * لا نضع Content-Type يدوياً
+     * عندما يكون الطلب FormData.
+     *
+     * المتصفح سيضع:
+     * multipart/form-data
+     * مع boundary الصحيح تلقائياً.
      */
-    if (!(options.body instanceof FormData)) {
-      headers["Content-Type"] = "application/json";
+    if (
+      !(options.body instanceof FormData)
+    ) {
+      headers["Content-Type"] =
+        "application/json";
     }
+
+    /*
+     * تحديث التوكن قبل كل طلب
+     * حتى نأخذ آخر قيمة موجودة في المتصفح.
+     */
+    this.loadToken();
 
     if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+      headers.Authorization =
+        `Bearer ${this.token}`;
     }
 
-    const response = await fetch(url.toString(), {
-      ...options,
-      headers,
-    });
+    const response = await fetch(
+      url.toString(),
+      {
+        ...options,
+        headers,
+      }
+    );
 
     if (response.status === 401) {
       this.clearToken();
@@ -110,18 +151,23 @@ class ApiClient {
     }
 
     if (!response.ok) {
+      const validationErrors =
+        data?.errors
+          ? Object.values(data.errors)
+              .flat()
+              .join(" ")
+          : null;
+
       const error = new Error(
         data?.message ||
           data?.error ||
-          (data?.errors
-            ? Object.values(data.errors)
-                .flat()
-                .join(" ")
-            : null) ||
+          validationErrors ||
           `API Error: ${response.status}`
       );
 
-      (error as any).status = response.status;
+      (error as any).status =
+        response.status;
+
       (error as any).data = data;
 
       throw error;
@@ -143,13 +189,16 @@ class ApiClient {
     city?: string;
     specialty?: string;
   }) {
-    const data = await this.request<{
-      token: string;
-      user: any;
-    }>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    const data =
+      await this.request<{
+        token: string;
+        user: any;
+      }>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify(
+          payload
+        ),
+      });
 
     if (data.token) {
       this.saveToken(data.token);
@@ -158,17 +207,21 @@ class ApiClient {
     return data;
   }
 
-  async login(email: string, password: string) {
-    const data = await this.request<{
-      token: string;
-      user: any;
-    }>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-    });
+  async login(
+    email: string,
+    password: string
+  ) {
+    const data =
+      await this.request<{
+        token: string;
+        user: any;
+      }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
     if (data.token) {
       this.saveToken(data.token);
@@ -179,84 +232,136 @@ class ApiClient {
 
   async logout() {
     try {
-      await this.request("/auth/logout", {
-        method: "POST",
-      });
+      await this.request(
+        "/auth/logout",
+        {
+          method: "POST",
+        }
+      );
     } finally {
       this.clearToken();
     }
   }
 
   async getMe() {
-    return this.request<User>("/auth/me");
+    return this.request<User>(
+      "/auth/me"
+    );
   }
 
-  async setPassword(userId: number, password: string) {
-    return this.request("/auth/set-password", {
-      method: "POST",
-      body: JSON.stringify({
-        user_id: userId,
-        password,
-      }),
-    });
+  async setPassword(
+    userId: number,
+    password: string
+  ) {
+    return this.request(
+      "/auth/set-password",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          user_id: userId,
+          password,
+        }),
+      }
+    );
   }
 
   // =========================================================
   // CASES
   // =========================================================
 
-  async getCases(filters?: { status?: string }) {
-    return this.request<CaseItem[]>("/cases", {
-      params: filters,
-    });
+  async getCases(filters?: {
+    status?: string;
+  }) {
+    return this.request<CaseItem[]>(
+      "/cases",
+      {
+        params: filters,
+      }
+    );
   }
 
   async getCase(id: number) {
-    return this.request<CaseItem>(`/cases/${id}`);
+    return this.request<CaseItem>(
+      `/cases/${id}`
+    );
   }
 
   async createCase(payload: any) {
-    return this.request<CaseItem>("/cases", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    return this.request<CaseItem>(
+      "/cases",
+      {
+        method: "POST",
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    );
   }
 
-  async updateCase(id: number, payload: any) {
-    return this.request(`/cases/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
+  async updateCase(
+    id: number,
+    payload: any
+  ) {
+    return this.request(
+      `/cases/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    );
   }
 
   // =========================================================
   // HEARINGS
   // =========================================================
 
-  async getHearings(filters?: { case_id?: number }) {
-    return this.request<Hearing[]>("/hearings", {
-      params: filters,
-    });
+  async getHearings(filters?: {
+    case_id?: number;
+  }) {
+    return this.request<Hearing[]>(
+      "/hearings",
+      {
+        params: filters,
+      }
+    );
   }
 
   async createHearing(payload: any) {
-    return this.request<Hearing>("/hearings", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    return this.request<Hearing>(
+      "/hearings",
+      {
+        method: "POST",
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    );
   }
 
-  async updateHearing(id: number, payload: any) {
-    return this.request<Hearing>(`/hearings/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
+  async updateHearing(
+    id: number,
+    payload: any
+  ) {
+    return this.request<Hearing>(
+      `/hearings/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    );
   }
 
   async deleteHearing(id: number) {
-    return this.request(`/hearings/${id}`, {
-      method: "DELETE",
-    });
+    return this.request(
+      `/hearings/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
   }
 
   // =========================================================
@@ -264,76 +369,105 @@ class ApiClient {
   // =========================================================
 
   async getInvoices() {
-    return this.request<Invoice[]>("/invoices");
+    return this.request<Invoice[]>(
+      "/invoices"
+    );
   }
 
   async getInvoice(id: number) {
-    return this.request<Invoice>(`/invoices/${id}`);
+    return this.request<Invoice>(
+      `/invoices/${id}`
+    );
   }
 
   async createInvoice(payload: any) {
-    return this.request<Invoice>("/invoices", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    return this.request<Invoice>(
+      "/invoices",
+      {
+        method: "POST",
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    );
   }
 
   async cancelInvoice(id: number) {
-    return this.request(`/invoices/${id}/cancel`, {
-      method: "POST",
-    });
+    return this.request(
+      `/invoices/${id}/cancel`,
+      {
+        method: "POST",
+      }
+    );
   }
 
   async refundInvoice(id: number) {
-    return this.request(`/invoices/${id}/refund`, {
-      method: "POST",
-    });
+    return this.request(
+      `/invoices/${id}/refund`,
+      {
+        method: "POST",
+      }
+    );
   }
 
   // =========================================================
   // PAYMENTS
   // =========================================================
 
-  async createPaymentSession(invoiceId: number) {
-    return this.request("/payments/create-session", {
-      method: "POST",
-      body: JSON.stringify({
-        invoice_id: invoiceId,
-      }),
-    });
+  async createPaymentSession(
+    invoiceId: number
+  ) {
+    return this.request(
+      "/payments/create-session",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          invoice_id: invoiceId,
+        }),
+      }
+    );
   }
 
-  async getPaymentStatus(invoiceId: number) {
-    return this.request(`/payments/status/${invoiceId}`);
+  async getPaymentStatus(
+    invoiceId: number
+  ) {
+    return this.request(
+      `/payments/status/${invoiceId}`
+    );
   }
 
   // =========================================================
   // DOCUMENTS
   // =========================================================
 
-  async getDocuments(filters?: { caseId?: number }) {
-    return this.request<Document[]>("/documents", {
-      params: filters
-        ? {
-            case_id: filters.caseId,
-          }
-        : undefined,
-    });
+  async getDocuments(filters?: {
+    caseId?: number;
+  }) {
+    return this.request<Document[]>(
+      "/documents",
+      {
+        params: filters
+          ? {
+              case_id:
+                filters.caseId,
+            }
+          : undefined,
+      }
+    );
   }
 
   /**
-   * رفع مستند
+   * رفع المستندات
    *
-   * مهم:
    * Laravel يستقبل:
    * file
+   * file_name
    * title
    * category
-   * file_name
    * case_id اختياري
    * hearing_id اختياري
    *
-   * نستخدم FormData وليس JSON.
+   * يتم إرسال الملف كـ FormData.
    */
   async uploadDocument(payload: {
     file: File;
@@ -342,36 +476,68 @@ class ApiClient {
     case_id?: number;
     hearing_id?: number;
   }) {
-    if (!(payload.file instanceof File)) {
-      throw new Error("لم يتم اختيار ملف صالح");
+    if (
+      !(payload.file instanceof File)
+    ) {
+      throw new Error(
+        "لم يتم اختيار ملف صالح"
+      );
     }
 
-    const formData = new FormData();
+    /*
+     * مهم جداً:
+     * نقرأ آخر توكن من localStorage
+     * قبل عملية الرفع.
+     */
+    this.loadToken();
 
-    // الملف الحقيقي
-    formData.append("file", payload.file, payload.file.name);
+    if (!this.token) {
+      throw new Error(
+        "انتهت جلسة الدخول. يرجى تسجيل الدخول مرة أخرى."
+      );
+    }
 
-    // اسم الملف
+    const formData =
+      new FormData();
+
+    /*
+     * الملف الحقيقي
+     */
+    formData.append(
+      "file",
+      payload.file,
+      payload.file.name
+    );
+
+    /*
+     * اسم الملف
+     */
     formData.append(
       "file_name",
       payload.file.name
     );
 
-    // العنوان مطلوب في Laravel
+    /*
+     * العنوان
+     */
     formData.append(
       "title",
       payload.title?.trim() ||
         payload.file.name
     );
 
-    // التصنيف مطلوب في Laravel
+    /*
+     * التصنيف
+     */
     formData.append(
       "category",
       payload.category?.trim() ||
         "other"
     );
 
-    // القضية اختيارية
+    /*
+     * القضية اختيارية
+     */
     if (
       payload.case_id !== undefined &&
       payload.case_id !== null
@@ -382,9 +548,12 @@ class ApiClient {
       );
     }
 
-    // الجلسة اختيارية
+    /*
+     * الجلسة اختيارية
+     */
     if (
-      payload.hearing_id !== undefined &&
+      payload.hearing_id !==
+        undefined &&
       payload.hearing_id !== null
     ) {
       formData.append(
@@ -394,23 +563,30 @@ class ApiClient {
     }
 
     /*
-     * لا تضيفي Content-Type هنا.
-     * request() سيتأكد من أن body عبارة عن FormData
-     * ويترك المتصفح يحدد multipart boundary.
+     * لا نضع Content-Type هنا.
      *
-     * نستخدم /documents لأن Route::apiResource
-     * في Laravel هو المسؤول عن استقبال الرفع.
+     * request() سيضيف Authorization
+     * تلقائياً ويترك المتصفح يحدد
+     * multipart boundary.
      */
-    return this.request("/documents", {
-      method: "POST",
-      body: formData,
-    });
+    return this.request(
+      "/documents",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
   }
 
-  async deleteDocument(id: number) {
-    return this.request(`/documents/${id}`, {
-      method: "DELETE",
-    });
+  async deleteDocument(
+    id: number
+  ) {
+    return this.request(
+      `/documents/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
   }
 
   // =========================================================
@@ -418,12 +594,14 @@ class ApiClient {
   // =========================================================
 
   async getNotifications() {
-    return this.request<Notification[]>(
-      "/notifications"
-    );
+    return this.request<
+      Notification[]
+    >("/notifications");
   }
 
-  async markNotificationRead(id: number) {
+  async markNotificationRead(
+    id: number
+  ) {
     return this.request(
       `/notifications/${id}/mark-read`,
       {
@@ -432,7 +610,9 @@ class ApiClient {
     );
   }
 
-  async deleteNotification(id: number) {
+  async deleteNotification(
+    id: number
+  ) {
     return this.request(
       `/notifications/${id}`,
       {
@@ -445,7 +625,9 @@ class ApiClient {
   // MESSAGES
   // =========================================================
 
-  async getMessageThread(peerId: number) {
+  async getMessageThread(
+    peerId: number
+  ) {
     return this.request<Message[]>(
       `/messages/thread/${peerId}`
     );
@@ -455,13 +637,17 @@ class ApiClient {
     recipientId: number,
     body: string
   ) {
-    return this.request("/messages/send", {
-      method: "POST",
-      body: JSON.stringify({
-        recipient_id: recipientId,
-        body,
-      }),
-    });
+    return this.request(
+      "/messages/send",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          recipient_id:
+            recipientId,
+          body,
+        }),
+      }
+    );
   }
 
   async getMessageContacts() {
@@ -475,9 +661,9 @@ class ApiClient {
   // =========================================================
 
   async getSubscriptionPlans() {
-    return this.request<SubscriptionPlan[]>(
-      "/subscriptions/plans"
-    );
+    return this.request<
+      SubscriptionPlan[]
+    >("/subscriptions/plans");
   }
 
   async getMySubscription() {
@@ -487,12 +673,16 @@ class ApiClient {
   }
 
   async getMySubscriptionRecords() {
-    return this.request<SubscriptionRecord[]>(
+    return this.request<
+      SubscriptionRecord[]
+    >(
       "/subscriptions/my-records"
     );
   }
 
-  async upgradeSubscription(plan: string) {
+  async upgradeSubscription(
+    plan: string
+  ) {
     return this.request(
       "/subscriptions/upgrade",
       {
@@ -520,7 +710,9 @@ class ApiClient {
   // =========================================================
 
   async getStats() {
-    return this.request<any>("/admin/stats");
+    return this.request<any>(
+      "/admin/stats"
+    );
   }
 
   async getUsers(filters?: {
@@ -605,12 +797,15 @@ class ApiClient {
   // =========================================================
 
   isAuthenticated() {
+    this.loadToken();
     return !!this.token;
   }
 
   getToken() {
+    this.loadToken();
     return this.token;
   }
 }
 
-export const api = new ApiClient();
+export const api =
+  new ApiClient();
