@@ -8,14 +8,9 @@ async uploadDocument(payload: {
   const formData = new FormData();
 
   formData.append('file', payload.file);
-
-  if (payload.title) {
-    formData.append('title', payload.title);
-  }
-
-  if (payload.category) {
-    formData.append('category', payload.category);
-  }
+  formData.append('file_name', payload.file.name);
+  formData.append('title', payload.title ?? payload.file.name);
+  formData.append('category', payload.category ?? 'other');
 
   if (payload.case_id !== undefined) {
     formData.append('case_id', String(payload.case_id));
