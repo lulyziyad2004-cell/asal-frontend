@@ -5,23 +5,37 @@ async uploadDocument(payload: {
   case_id?: number;
   hearing_id?: number;
 }) {
-  const formData = new FormData();
+  const data = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
 
-  formData.append("file", payload.file);
-  formData.append("file_name", payload.file.name);
-  formData.append("title", payload.title?.trim() || payload.file.name);
-  formData.append("category", payload.category || "other");
+    reader.onload = () => {
+      resolve(String(reader.result));
+    };
 
-  if (payload.case_id !== undefined) {
-    formData.append("case_id", String(payload.case_id));
-  }
+    reader.onerror = () => {
+      reject(new Error("تعذر قراءة الملف"));
+    };
 
-  if (payload.hearing_id !== undefined) {
-    formData.append("hearing_id", String(payload.hearing_id));
-  }
+    reader.readAsDataURL(payload.file);
+  });
 
-  return this.request("/documents", {
+  return this.request("/upload", {
     method: "POST",
-    body: formData,
+    body: JSON.stringify({
+      data,
+      file_name: payload.file.name,
+      title: payload.title?.trim() || payload.file.name,
+      category: payload.category || "other",
+      mime_type:
+        payload.file.type || "application/octet-stream",
+
+      ...(payload.case_id !== undefined
+        ? { case_id: payload.case_id }
+        : {}),
+
+      ...(payload.hearing_id !== undefined
+        ? { hearing_id: payload.hearing_id }
+        : {}),
+    }),
   });
 }
