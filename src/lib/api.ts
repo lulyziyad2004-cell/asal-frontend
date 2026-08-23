@@ -9,79 +9,81 @@ async uploadDocument(payload: {
     throw new Error("لم يتم اختيار ملف صالح");
   }
 
-  const formData = new FormData();
+  const params = new URLSearchParams();
 
-  formData.append("file", payload.file, payload.file.name);
-  formData.append("file_name", payload.file.name);
-  formData.append(
+  params.set("file_name", payload.file.name);
+  params.set(
     "title",
     payload.title?.trim() || payload.file.name
   );
-  formData.append(
+  params.set(
     "category",
     payload.category?.trim() || "other"
   );
-  formData.append(
+  params.set(
     "mime_type",
     payload.file.type || "application/octet-stream"
   );
 
   if (payload.case_id != null) {
-    formData.append("case_id", String(payload.case_id));
+    params.set(
+      "case_id",
+      String(payload.case_id)
+    );
   }
 
   if (payload.hearing_id != null) {
-    formData.append("hearing_id", String(payload.hearing_id));
+    params.set(
+      "hearing_id",
+      String(payload.hearing_id)
+    );
   }
 
   const response = await fetch(
-    "https://asal-backend-2.onrender.com/api/upload",
+    `https://asal-backend-2.onrender.com/api/upload?${params.toString()}`,
     {
       method: "POST",
+
       headers: {
         Accept: "application/json",
+
         ...(this.token
           ? {
               Authorization: `Bearer ${this.token}`,
             }
           : {}),
+
+        "Content-Type":
+          payload.file.type ||
+          "application/octet-stream",
       },
-      body: formData,
+
+      // الملف نفسه مباشرة، بدون FormData وبدون Base64
+      body: payload.file,
     }
   );
 
   if (response.status === 401) {
-    this.clearToken();
-    throw new Error("انتهت جلسة الدخول، سجلي الدخول مرة أخرى");
+    throw new Error(
+      "انتهت جلسة الدخول، سجلي الدخول مرة أخرى"
+    );
   }
-
-  const contentType =
-    response.headers.get("content-type") || "";
 
   let data: any = null;
 
   try {
-    if (contentType.includes("application/json")) {
-      data = await response.json();
-    }
+    data = await response.json();
   } catch {
     data = null;
   }
 
   if (!response.ok) {
     throw new Error(
-      data?.errors
-        ? Object.values(data.errors).flat().join(" ")
-        : data?.error ||
-          data?.message ||
-          `فشل رفع الملف (${response.status})`
+      data?.message ||
+      data?.error ||
+      `فشل رفع الملف (${response.status})`
     );
   }
 
-  return (
-    data || {
-      success: true,
-      message: "تم رفع الملف بنجاح",
-    }
-  );
+  return data;
 }
