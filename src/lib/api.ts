@@ -12,8 +12,20 @@ async uploadDocument(payload: {
   const data = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("تعذر قراءة الملف"));
+    reader.onload = () => {
+      const result = reader.result;
+
+      if (typeof result !== "string") {
+        reject(new Error("تعذر قراءة الملف"));
+        return;
+      }
+
+      resolve(result);
+    };
+
+    reader.onerror = () => {
+      reject(new Error("تعذر قراءة الملف"));
+    };
 
     reader.readAsDataURL(payload.file);
   });
@@ -25,7 +37,8 @@ async uploadDocument(payload: {
       file_name: payload.file.name,
       title: payload.title?.trim() || payload.file.name,
       category: payload.category?.trim() || "other",
-      mime_type: payload.file.type || "application/octet-stream",
+      mime_type:
+        payload.file.type || "application/octet-stream",
 
       ...(payload.case_id != null
         ? { case_id: payload.case_id }
