@@ -1,20 +1,87 @@
-/**
- * API Client for Laravel Backend
- * Direct HTTP API calls to the Asal Laravel backend
- */
+async uploadDocument(payload: {
+  file: File;
+  title?: string;
+  category?: string;
+  case_id?: number;
+  hearing_id?: number;
+}) {
+  if (!(payload.file instanceof File) || payload.file.size === 0) {
+    throw new Error("لم يتم اختيار ملف صالح");
+  }
 
-import type {
-  AuditLog,
-  CaseItem,
-  Document,
-  Hearing,
-  Invoice,
-  Message,
-  Notification,
-  SubscriptionPlan,
-  MySubscription,
-  SubscriptionRecord,
-  User,
-} from '@/types/api';
+  const formData = new FormData();
 
-const API_BASE_URL = 'https://asal-backend-2.onrender.com/api';
+  formData.append("file", payload.file, payload.file.name);
+  formData.append("file_name", payload.file.name);
+  formData.append(
+    "title",
+    payload.title?.trim() || payload.file.name
+  );
+  formData.append(
+    "category",
+    payload.category?.trim() || "other"
+  );
+  formData.append(
+    "mime_type",
+    payload.file.type || "application/octet-stream"
+  );
+
+  if (payload.case_id != null) {
+    formData.append("case_id", String(payload.case_id));
+  }
+
+  if (payload.hearing_id != null) {
+    formData.append("hearing_id", String(payload.hearing_id));
+  }
+
+  const response = await fetch(
+    "https://asal-backend-2.onrender.com/api/upload",
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        ...(this.token
+          ? {
+              Authorization: `Bearer ${this.token}`,
+            }
+          : {}),
+      },
+      body: formData,
+    }
+  );
+
+  if (response.status === 401) {
+    this.clearToken();
+    throw new Error("انتهت جلسة الدخول، سجلي الدخول مرة أخرى");
+  }
+
+  const contentType =
+    response.headers.get("content-type") || "";
+
+  let data: any = null;
+
+  try {
+    if (contentType.includes("application/json")) {
+      data = await response.json();
+    }
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.errors
+        ? Object.values(data.errors).flat().join(" ")
+        : data?.error ||
+          data?.message ||
+          `فشل رفع الملف (${response.status})`
+    );
+  }
+
+  return (
+    data || {
+      success: true,
+      message: "تم رفع الملف بنجاح",
+    }
+  );
+}
