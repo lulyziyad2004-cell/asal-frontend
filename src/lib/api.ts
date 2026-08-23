@@ -9,18 +9,16 @@ async uploadDocument(payload: {
     throw new Error("لم يتم اختيار ملف صالح");
   }
 
-  const data = await new Promise<string>((resolve, reject) => {
+  const base64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = () => {
-      const result = reader.result;
-
-      if (typeof result !== "string") {
+      if (typeof reader.result !== "string") {
         reject(new Error("تعذر قراءة الملف"));
         return;
       }
 
-      resolve(result);
+      resolve(reader.result);
     };
 
     reader.onerror = () => {
@@ -33,7 +31,7 @@ async uploadDocument(payload: {
   return this.request("/upload", {
     method: "POST",
     body: JSON.stringify({
-      data,
+      data: base64,
       file_name: payload.file.name,
       title: payload.title?.trim() || payload.file.name,
       category: payload.category?.trim() || "other",
