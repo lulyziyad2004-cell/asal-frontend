@@ -1,41 +1,20 @@
-async uploadDocument(payload: {
-  file: File;
-  title?: string;
-  category?: string;
-  case_id?: number;
-  hearing_id?: number;
-}) {
-  if (!(payload.file instanceof File) || payload.file.size === 0) {
-    throw new Error("لم يتم اختيار ملف صالح");
-  }
+/**
+ * API Client for Laravel Backend
+ * Direct HTTP API calls to the Asal Laravel backend
+ */
 
-  const formData = new FormData();
+import type {
+  AuditLog,
+  CaseItem,
+  Document,
+  Hearing,
+  Invoice,
+  Message,
+  Notification,
+  SubscriptionPlan,
+  MySubscription,
+  SubscriptionRecord,
+  User,
+} from '@/types/api';
 
-  formData.append("file", payload.file, payload.file.name);
-  formData.append("file_name", payload.file.name);
-  formData.append(
-    "title",
-    payload.title?.trim() || payload.file.name
-  );
-  formData.append(
-    "category",
-    payload.category?.trim() || "other"
-  );
-  formData.append(
-    "mime_type",
-    payload.file.type || "application/octet-stream"
-  );
-
-  if (payload.case_id != null) {
-    formData.append("case_id", String(payload.case_id));
-  }
-
-  if (payload.hearing_id != null) {
-    formData.append("hearing_id", String(payload.hearing_id));
-  }
-
-  return this.request("/upload", {
-    method: "POST",
-    body: formData,
-  });
-}
+const API_BASE_URL = 'https://asal-backend-2.onrender.com/api';
